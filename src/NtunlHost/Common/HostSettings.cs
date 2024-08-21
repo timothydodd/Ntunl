@@ -1,9 +1,4 @@
-﻿
-
-
-using NtunlCommon;
-
-public class HttpHostSetting : HostSetting
+﻿public class HttpHostSetting : HostSetting
 {
     public required HttpHostHeaderSettings Headers { get; set; }
 }
@@ -22,16 +17,7 @@ public class SslSettings
 {
     public bool Enabled { get; set; }
     public bool AcceptInvalidCertificates { get; set; }
-    public bool MutuallyAuthenticate { get; set; }
-    public required CertificateSettings Certificate { get; set; }
 }
-
-public class CertificateSettings : ICertPath
-{
-    public required string Path { get; set; }
-    public required string Password { get; set; }
-}
-
 
 public class ClientDomainSettings
 {

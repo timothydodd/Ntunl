@@ -1,0 +1,60 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "release-*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.x"
+
+      - name: Restore dependencies for NtunlClient
+        run: dotnet restore src/NtunlClient/NtunlClient.csproj
+
+      - name: Build NtunlClient
+        run: dotnet build src/NtunlClient/NtunlClient.csproj --configuration Release --no-restore
+
+      - name: Restore dependencies for NtunlHost
+        run: dotnet restore src/NtunlHost/NtunlHost.csproj
+
+      - name: Build NtunlHost
+        run: dotnet build src/NtunlHost/NtunlHost.csproj --configuration Release --no-restore
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Release notes for ${{ github.ref }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload NtunlClient Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: src/NtunlClient/bin/Release/net8.0/your-client-asset.zip
+          asset_name: NtunlClient.zip
+          asset_content_type: application/zip
+
+      - name: Upload NtunlHost Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: src/NtunlHost/bin/Release/net8.0/your-host-asset.zip
+          asset_name: NtunlHost.zip
+          asset_content_type: application/zip

@@ -2,7 +2,8 @@ name: Build and Deploy to DockerHub
 
 on:
   push:
-    branches: ["master"]
+    tags:
+      - "release-*"
 
 jobs:
   build-and-deploy:
@@ -29,7 +30,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-host:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-host:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-host:${{ github.ref }}
 
       - name: Build and push NtunlClient
         uses: docker/build-push-action@v6.5.0
@@ -39,4 +40,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-client:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-client:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-client:${{ github.ref }}

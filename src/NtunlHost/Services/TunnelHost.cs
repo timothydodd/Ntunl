@@ -6,7 +6,7 @@ using NtunlCommon;
 using WatsonWebsocket;
 
 namespace NtunlHost.Services;
-public class TunnelHost
+public class TunnelHost : IDisposable
 {
     readonly WatsonWsServer _server;
     readonly ILogger<TunnelHost> _logger;
@@ -22,7 +22,7 @@ public class TunnelHost
         _hostSettings = hostSettings.Value;
         domain = _hostSettings.ClientDomain.Domain;
         subDomains = _hostSettings.ClientDomain.SubDomains.ToArray();
-        _server = new WatsonWsServer(_hostSettings.HostName, _hostSettings.Port);
+        _server = new WatsonWsServer(_hostSettings.HostName, _hostSettings.Port, _hostSettings.SslSettings?.Enabled == true);
 
     }
     public void Start()
@@ -39,25 +39,42 @@ public class TunnelHost
 
     }
 
-    private bool ClientCertificateValidationCallback(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
+    private bool CertificateValidationCallback(
+    object sender,
+    X509Certificate? certificate,
+    X509Chain? chain,
+    SslPolicyErrors sslPolicyErrors)
     {
-        // Check for any SSL policy errors
+        // Log the certificate details
+        LogCertificateDetails(certificate);
+
+        // Custom validation logic (optional)
         if (sslPolicyErrors == SslPolicyErrors.None)
-            return true;
-
-        var acceptInvalidCertificates = _hostSettings?.SslSettings?.AcceptInvalidCertificates == true;
-
-        // Ensure the chain is valid and has been properly signed by a trusted CA
-        foreach (X509ChainStatus chainStatus in chain.ChainStatus)
         {
-            if (chainStatus.Status != X509ChainStatusFlags.NoError)
-            {
-                _logger.LogWarning($"Certificate chain error: {chainStatus.StatusInformation}");
-                return true;
-            }
+            _logger.LogInformation("Certificate is valid.");
+            return true; // Certificate is valid
+        }
+        else
+        {
+            _logger.LogError($"Certificate error: {sslPolicyErrors}");
+            return _hostSettings?.SslSettings?.AcceptInvalidCertificates == true;
+        }
+    }
+
+    private void LogCertificateDetails(X509Certificate certificate)
+    {
+        if (certificate == null)
+        {
+            _logger.LogInformation("No certificate provided.");
+            return;
         }
 
-        return true; // Certificate is valid
+        _logger.LogInformation("Certificate Details:");
+        _logger.LogInformation($"- Subject: {certificate.Subject}");
+        _logger.LogInformation($"- Issuer: {certificate.Issuer}");
+        _logger.LogInformation($"- Effective Date: {certificate.GetEffectiveDateString()}");
+        _logger.LogInformation($"- Expiration Date: {certificate.GetExpirationDateString()}");
+        _logger.LogInformation($"- Thumbprint: {certificate.GetCertHashString()}");
     }
 
     void ClientServerConnected(object? sender, ConnectionEventArgs args)
@@ -230,6 +247,14 @@ public class TunnelHost
             word = $"{words[wordIndex]}{randomNumber}";
         } while (clientsByName.ContainsKey(word));
         return word;
+    }
+
+    public void Dispose()
+    {
+        if (_server != null)
+        {
+            _server.Dispose();
+        }
     }
 }
 public class SyncMessageReceivedEventArgs : EventArgs
