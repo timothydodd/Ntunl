@@ -54,7 +54,8 @@ jobs:
           asset_path: NtunlClient.zip
           asset_name: NtunlClient.zip
           asset_content_type: application/zip
-
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload NtunlHost Release Asset
         uses: actions/upload-release-asset@v1
         with:
@@ -62,3 +63,5 @@ jobs:
           asset_path: NtunlHost.zip
           asset_name: NtunlHost.zip
           asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
