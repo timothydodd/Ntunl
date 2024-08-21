@@ -1,5 +1,5 @@
 
-#NTunl
+# NTunl
 NTunl is a lightweight and flexible tunneling solution, designed to expose your local services to the internet securely. Similar to tools like ngrok, NTunl allows you to securely tunnel your localhost or any other private services to a public domain.
 
 ## Features
