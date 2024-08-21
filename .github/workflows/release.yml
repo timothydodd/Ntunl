@@ -18,17 +18,21 @@ jobs:
         with:
           dotnet-version: "8.x"
 
-      - name: Restore dependencies for NtunlClient
-        run: dotnet restore src/NtunlClient/NtunlClient.csproj
+      - name: Publish NtunlClient
+        run: dotnet publish src/NtunlClient/NtunlClient.csproj --configuration Release --output publish/NtunlClient
 
-      - name: Build NtunlClient
-        run: dotnet build src/NtunlClient/NtunlClient.csproj --configuration Release --no-restore
+      - name: Publish NtunlHost
+        run: dotnet publish src/NtunlHost/NtunlHost.csproj --configuration Release --output publish/NtunlHost
 
-      - name: Restore dependencies for NtunlHost
-        run: dotnet restore src/NtunlHost/NtunlHost.csproj
+      - name: Generate NtunlClient ZIP
+        run: |
+          cd publish/NtunlClient
+          zip -r ../../NtunlClient.zip .
 
-      - name: Build NtunlHost
-        run: dotnet build src/NtunlHost/NtunlHost.csproj --configuration Release --no-restore
+      - name: Generate NtunlHost ZIP
+        run: |
+          cd publish/NtunlHost
+          zip -r ../../NtunlHost.zip .
 
       - name: Create Release
         id: create_release
@@ -47,7 +51,7 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: src/NtunlClient/bin/Release/net8.0/your-client-asset.zip
+          asset_path: NtunlClient.zip
           asset_name: NtunlClient.zip
           asset_content_type: application/zip
 
@@ -55,6 +59,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: src/NtunlHost/bin/Release/net8.0/your-host-asset.zip
+          asset_path: NtunlHost.zip
           asset_name: NtunlHost.zip
           asset_content_type: application/zip
