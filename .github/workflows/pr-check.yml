@@ -1,0 +1,28 @@
+name: PR Build Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.x"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build NtunlClient
+        run: dotnet build src/NtunlClient/NtunlClient.csproj --configuration Release --no-restore --verbosity minimal
+
+      - name: Build NtunlHost
+        run: dotnet build src/NtunlHost/NtunlHost.csproj --configuration Release --no-restore --verbosity minimal
