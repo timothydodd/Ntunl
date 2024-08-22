@@ -32,12 +32,12 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-host:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-host:${{ github.ref }}
 
-      - name: Build and push NtunlClient
-        uses: docker/build-push-action@v6.5.0
-        with:
-          context: ./src/
-          file: ./src/NtunlClient/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-client:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-client:${{ github.ref }}
+      # - name: Build and push NtunlClient
+      #   uses: docker/build-push-action@v6.5.0
+      #   with:
+      #     context: ./src/
+      #     file: ./src/NtunlClient/Dockerfile
+      #     push: true
+      #     tags: |
+      #       ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-client:latest
+      #       ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-client:${{ github.ref }}
