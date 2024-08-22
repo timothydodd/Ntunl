@@ -30,7 +30,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-host:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-host:${{ github.ref }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-host:${{ github.ref_name }}
 
       # - name: Build and push NtunlClient
       #   uses: docker/build-push-action@v6.5.0
@@ -40,4 +40,4 @@ jobs:
       #     push: true
       #     tags: |
       #       ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:latest
-      #       ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:${{ github.ref }}
+      #       ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:${{ github.ref_name }}
