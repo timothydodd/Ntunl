@@ -66,17 +66,12 @@ The server exposes your tunnels to a public interface. Below is the configuratio
         "HostName": "*",
         "Port": 8001,
         "ClientDomain": {
-            "Domain": "dodd.rocks",
+            "Domain": "mysite.com",
             "SubDomains": [ "apple", "banana", "cherry", "elderberry" ]
         },
         "Ssl": {
             "Enabled": false,
-            "AcceptInvalidCertificates": true,
-            "MutuallyAuthenticate": false,
-            "Certificate": {
-                "Path": "server.pfx",
-                "Password": ""
-            }
+            "AcceptInvalidCertificates": true
         }
     },
     "HttpHost": {
