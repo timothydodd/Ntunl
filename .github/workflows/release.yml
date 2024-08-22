@@ -6,7 +6,7 @@ on:
       - "release-*"
 
 jobs:
-  build_x86:
+  build_windows_and_linux:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,112 +18,87 @@ jobs:
         with:
           dotnet-version: "8.x"
 
-      - name: Publish NtunlClient (x86)
-        run: dotnet publish src/NtunlClient/NtunlClient.csproj --configuration Release --output publish/x86/NtunlClient -r win-x86 --self-contained
+      - name: Publish NtunlClient (Windows x64)
+        run: dotnet publish src/NtunlClient/NtunlClient.csproj --configuration Release --output publish/windows-x64/NtunlClient -r win-x64 --self-contained
 
-      - name: Publish NtunlHost (x86)
-        run: dotnet publish src/NtunlHost/NtunlHost.csproj --configuration Release --output publish/x86/NtunlHost -r win-x86 --self-contained
+      - name: Publish NtunlHost (Windows x64)
+        run: dotnet publish src/NtunlHost/NtunlHost.csproj --configuration Release --output publish/windows-x64/NtunlHost -r win-x64 --self-contained
 
-      - name: Generate NtunlClient ZIP (x86)
+      - name: Publish NtunlClient (Linux x64)
+        run: dotnet publish src/NtunlClient/NtunlClient.csproj --configuration Release --output publish/linux-x64/NtunlClient -r linux-x64 --self-contained
+
+      - name: Publish NtunlHost (Linux x64)
+        run: dotnet publish src/NtunlHost/NtunlHost.csproj --configuration Release --output publish/linux-x64/NtunlHost -r linux-x64 --self-contained
+
+      - name: Generate NtunlClient ZIP (Windows x64)
         run: |
-          cd publish/x86/NtunlClient
-          zip -r ../../../NtunlClient_x86.zip .
+          cd publish/windows-x64/NtunlClient
+          zip -r ../../../NtunlClient_windows_x64.zip .
 
-      - name: Generate NtunlHost ZIP (x86)
+      - name: Generate NtunlHost ZIP (Windows x64)
         run: |
-          cd publish/x86/NtunlHost
-          zip -r ../../../NtunlHost_x86.zip .
+          cd publish/windows-x64/NtunlHost
+          zip -r ../../../NtunlHost_windows_x64.zip .
 
-      - name: Create Release (x86)
-        id: create_release_x86
+      - name: Generate NtunlClient ZIP (Linux x64)
+        run: |
+          cd publish/linux-x64/NtunlClient
+          zip -r ../../../NtunlClient_linux_x64.zip .
+
+      - name: Generate NtunlHost ZIP (Linux x64)
+        run: |
+          cd publish/linux-x64/NtunlHost
+          zip -r ../../../NtunlHost_linux_x64.zip .
+
+      - name: Create Release
+        id: create_release
         uses: actions/create-release@v1
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }} - x86
+          release_name: Release ${{ github.ref }}
           body: |
-            Release notes for ${{ github.ref }} (x86)
+            Release notes for ${{ github.ref }}
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload NtunlClient Release Asset (x86)
+      - name: Upload NtunlClient Release Asset (Windows x64)
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release_x86.outputs.upload_url }}
-          asset_path: NtunlClient_x86.zip
-          asset_name: NtunlClient_x86.zip
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: NtunlClient_windows_x64.zip
+          asset_name: NtunlClient_windows_x64.zip
           asset_content_type: application/zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload NtunlHost Release Asset (x86)
+      - name: Upload NtunlHost Release Asset (Windows x64)
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release_x86.outputs.upload_url }}
-          asset_path: NtunlHost_x86.zip
-          asset_name: NtunlHost_x86.zip
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: NtunlHost_windows_x64.zip
+          asset_name: NtunlHost_windows_x64.zip
           asset_content_type: application/zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build_linux:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: "8.x"
-
-      - name: Publish NtunlClient (Linux)
-        run: dotnet publish src/NtunlClient/NtunlClient.csproj --configuration Release --output publish/linux/NtunlClient -r linux-x64 --self-contained
-
-      - name: Publish NtunlHost (Linux)
-        run: dotnet publish src/NtunlHost/NtunlHost.csproj --configuration Release --output publish/linux/NtunlHost -r linux-x64 --self-contained
-
-      - name: Generate NtunlClient ZIP (Linux)
-        run: |
-          cd publish/linux/NtunlClient
-          zip -r ../../../NtunlClient_linux.zip .
-
-      - name: Generate NtunlHost ZIP (Linux)
-        run: |
-          cd publish/linux/NtunlHost
-          zip -r ../../../NtunlHost_linux.zip .
-
-      - name: Create Release (Linux)
-        id: create_release_linux
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }} - Linux
-          body: |
-            Release notes for ${{ github.ref }} (Linux)
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload NtunlClient Release Asset (Linux)
+      - name: Upload NtunlClient Release Asset (Linux x64)
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release_linux.outputs.upload_url }}
-          asset_path: NtunlClient_linux.zip
-          asset_name: NtunlClient_linux.zip
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: NtunlClient_linux_x64.zip
+          asset_name: NtunlClient_linux_x64.zip
           asset_content_type: application/zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload NtunlHost Release Asset (Linux)
+      - name: Upload NtunlHost Release Asset (Linux x64)
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release_linux.outputs.upload_url }}
-          asset_path: NtunlHost_linux.zip
-          asset_name: NtunlHost_linux.zip
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: NtunlHost_linux_x64.zip
+          asset_name: NtunlHost_linux_x64.zip
           asset_content_type: application/zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
