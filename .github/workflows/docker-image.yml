@@ -29,8 +29,8 @@ jobs:
           file: ./src/NtunlHost/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-host:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-host:${{ github.ref }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-host:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-host:${{ github.ref }}
 
       # - name: Build and push NtunlClient
       #   uses: docker/build-push-action@v6.5.0
@@ -39,5 +39,5 @@ jobs:
       #     file: ./src/NtunlClient/Dockerfile
       #     push: true
       #     tags: |
-      #       ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-client:latest
-      #       ${{ secrets.DOCKERHUB_USERNAME }}/Ntunl-client:${{ github.ref }}
+      #       ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:latest
+      #       ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:${{ github.ref }}
