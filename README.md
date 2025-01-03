@@ -113,7 +113,7 @@ The client connects to the NTunl server to expose your local service. Below is t
             "NtunlAddress": "tunnel.mysite.com:443",
             "Address": "https://robododd.com",
             "HostHeader": "robododd.com",
-            "CustomHeader": [],
+            "CustomHeader": {},
             "RewriteUrlEnabled": false,
             "RewriteUrlPattern": "https://(mysite|www.mysite2)\\.com"
         }

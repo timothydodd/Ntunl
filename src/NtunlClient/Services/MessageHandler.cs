@@ -58,6 +58,16 @@ public class ClientMessageHandler
                             continue;
                         }
 
+
+                        if (state.HostSettings.CustomHeader.ContainsKey(header.Key))
+                        {
+                            var k = state.HostSettings.CustomHeader[header.Key];
+                            request.Headers.TryAddWithoutValidation(header.Key, k);
+
+                            continue;
+                        }
+
+
                         if (header.Key == "Content-Length" || header.Key == "Content-Type")
                         {
                             continue;
