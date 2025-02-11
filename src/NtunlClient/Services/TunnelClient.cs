@@ -58,9 +58,16 @@ public class TunnelClient
                 }
             case CommandType.HttpRequest:
                 {
-                    var response = _clientMessageHandler.HandleMessage(cmd, _state).GetAwaiter().GetResult();
+                    try
+                    {
+                        var response = _clientMessageHandler.HandleMessage(cmd, _state).GetAwaiter().GetResult();
 
-                    _client.SendAsync(Command.ToBytes(response)).GetAwaiter().GetResult();
+                        _client.SendAsync(Command.ToBytes(response)).GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error handling message");
+                    }
                     break;
                 }
         }

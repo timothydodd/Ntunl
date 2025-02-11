@@ -12,6 +12,7 @@ public class HttpServerMessageHandler
     private readonly List<string> _headerBlacklistWild = new List<string>();
     private readonly HashSet<string> _headerBlacklist = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private readonly string _ipHeaderName = "";
+    private readonly int _defaultResponseCode;
     public HttpServerMessageHandler(
         TunnelHost tunnelHost,
         ILogger<HttpServerMessageHandler> logger,
@@ -23,6 +24,7 @@ public class HttpServerMessageHandler
 
         InitializeHeaderBlacklist(headerSettings);
         _ipHeaderName = headerSettings.IpHeaderName ?? "X-Forwarded-For";
+        _defaultResponseCode = httpHostSettings.Value.DefaultResponseCode;
     }
     private void InitializeHeaderBlacklist(HttpHostHeaderSettings httpHostHeaderSettings)
     {
@@ -62,7 +64,7 @@ public class HttpServerMessageHandler
 
         if (client == null)
         {
-            ctx.Response.StatusCode = 500;
+            ctx.Response.StatusCode = _defaultResponseCode;
             ctx.Response.Close();
             return;
         }
@@ -84,12 +86,12 @@ public class HttpServerMessageHandler
             Headers = GetHeadersDictionary(ctx.Request.Headers, out clientIp)
         };
 
-        _logger.LogDebug("{ClientIp} => {method}: {Path}", clientIp, ctx.Request.HttpMethod, path);
+        _logger.LogInformation("{ClientIp} => {method}: {Path}", clientIp, ctx.Request.HttpMethod, path);
 
-        var httpResponse = await _tunnelHost.SendHttpRequest(httpRequestData, client);
+        var httpResponse = await _tunnelHost.SendHttpRequest(httpRequestData, client, 20000);
 
 
-        foreach (var header in httpResponse?.Headers)
+        foreach (var header in httpResponse.Headers)
         {
             ctx.Response.Headers.Add(header.Key, header.Value);
         }
@@ -121,6 +123,7 @@ public class HttpServerMessageHandler
         }
         catch (Exception ex)
         {
+            ctx.Response.StatusCode = 500;
             _logger.LogError(ex, $"Error writing response {httpRequestData.Method} => {path}");
         }
 

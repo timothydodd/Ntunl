@@ -12,6 +12,7 @@ public class HostSetting
 {
     public required string HostName { get; set; }
     public int Port { get; set; }
+    public int DefaultResponseCode { get; set; } = 404;
 }
 public class SslSettings
 {
@@ -28,4 +29,5 @@ public class HttpHostHeaderSettings
 {
     public List<string>? BlackList { get; set; }
     public string? IpHeaderName { get; set; }
+
 }

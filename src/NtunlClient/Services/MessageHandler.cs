@@ -43,6 +43,7 @@ public class ClientMessageHandler
 
 
                     var client = _httpClientFactory.CreateClient();
+                    client.Timeout = new TimeSpan(0, 0, 10);
                     var method = GetMethod(httpRequest.Method);
                     var requestUri = new Uri(Utility.CombineUrlPath(state.HostSettings.Address, httpRequest.Path));
 
@@ -58,14 +59,14 @@ public class ClientMessageHandler
                             continue;
                         }
 
+                        if (state.HostSettings.CustomHeader != null)
+                            if (state.HostSettings.CustomHeader.ContainsKey(header.Key))
+                            {
+                                var k = state.HostSettings.CustomHeader[header.Key];
+                                request.Headers.TryAddWithoutValidation(header.Key, k);
 
-                        if (state.HostSettings.CustomHeader.ContainsKey(header.Key))
-                        {
-                            var k = state.HostSettings.CustomHeader[header.Key];
-                            request.Headers.TryAddWithoutValidation(header.Key, k);
-
-                            continue;
-                        }
+                                continue;
+                            }
 
 
                         if (header.Key == "Content-Length" || header.Key == "Content-Type")
@@ -92,20 +93,28 @@ public class ClientMessageHandler
                             request.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
                         }
                     }
-
-                    using var response = await client.SendAsync(request).ConfigureAwait(false);
-                    var httpResponse = await CreateResponseDataAsync(response, state).ConfigureAwait(false);
-
-                    var command = new Command
+                    try
                     {
-                        ConversationId = cmd.ConversationId,
-                        CommandType = CommandType.HttpResponse,
-                        Data = JsonSerializer.Serialize(httpResponse, DefaultSettings.JsonSerializerOptions)
-                    };
+                        using var response = await client.SendAsync(request).ConfigureAwait(false);
+                        var httpResponse = await CreateResponseDataAsync(response, state).ConfigureAwait(false);
 
-                    RequestLogs.Add(new RequestLog { Request = httpRequest, Response = httpResponse });
 
-                    return command;
+                        Command command = new Command
+                        {
+                            ConversationId = cmd.ConversationId,
+                            CommandType = CommandType.HttpResponse,
+                            Data = JsonSerializer.Serialize(httpResponse, DefaultSettings.JsonSerializerOptions)
+                        };
+
+                        RequestLogs.Add(new RequestLog { Request = httpRequest, Response = httpResponse });
+
+                        return command;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error sending request");
+                        throw;
+                    }
                 }
         }
 
@@ -138,18 +147,20 @@ public class ClientMessageHandler
 
     private async Task<HttpResponseData> CreateResponseDataAsync(HttpResponseMessage response, TunnelState state)
     {
+        var headers = ConvertToDictionary(response.Content.Headers);
+        var hasContent = response.Content != null && response.Content.Headers.ContentLength > 0;
         var httpResponse = new HttpResponseData
         {
             Headers = ConvertToDictionary(response.Headers),
             StatusCode = response.StatusCode,
-            Content = await response.Content.ReadAsByteArrayAsync(),
+            Content = hasContent ? await response.Content.ReadAsByteArrayAsync() : [],
             ContentHeaders = ConvertToDictionary(response.Content.Headers)
         };
 
         if (state.UrlRewriteEnabled && httpResponse.ContentHeaders.TryGetValue("Content-Type", out string? contentType) && contentType != null && contentType.Contains("text/html") && state.UrlRewriteRegex != null && state.NtunlInfo?.Url != null)
         {
             var encodeType = DecompressContent(httpResponse);
-            var content = Encoding.UTF8.GetString(httpResponse.Content);
+            var content = Encoding.UTF8.GetString(httpResponse.Content ?? []);
             content = state.UrlRewriteRegex.Replace(content, state.NtunlInfo.Url);
             httpResponse.Content = Utility.CompressData(Encoding.UTF8.GetBytes(content), encodeType);
             httpResponse.ContentHeaders["Content-Length"] = httpResponse.Content.Length.ToString();
