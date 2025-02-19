@@ -87,6 +87,9 @@ public class ClientMessageHandler
                     if (httpRequest.Content != null && httpRequest.Content.Length > 0)
                     {
                         request.Content = new ByteArrayContent(httpRequest.Content);
+                        //byte array to string
+                        var body = Encoding.UTF8.GetString(httpRequest.Content);
+                        _logger.LogDebug("Body: {Path}", body);
 
                         foreach (var header in httpRequest.ContentHeaders)
                         {

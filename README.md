@@ -20,7 +20,7 @@ NTunl consists of two main components:
 
 ## Getting Started
 Prerequisites
-- .NET 8 SDK installed on your machine.
+- .net 9 SDK installed on your machine.
 
 1. Installation
 Clone the repository:
