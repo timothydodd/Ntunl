@@ -14,8 +14,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Misc", "Misc", "{3F4360F0-1
 		..\.editorconfig = ..\.editorconfig
 		..\.gitattributes = ..\.gitattributes
 		..\.gitignore = ..\.gitignore
+		..\.github\workflows\docker-image.yml = ..\.github\workflows\docker-image.yml
 		..\LICENSE.txt = ..\LICENSE.txt
+		..\.github\workflows\pr-check.yml = ..\.github\workflows\pr-check.yml
 		..\README.md = ..\README.md
+		..\.github\workflows\release.yml = ..\.github\workflows\release.yml
 	EndProjectSection
 EndProject
 Global
