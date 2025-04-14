@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -26,7 +26,7 @@
    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.3" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.3" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.4" />
     <PackageReference Include="System.Text.Json" Version="9.0.3" />
     <PackageReference Include="WatsonWebsocket" Version="4.1.4" />
   </ItemGroup>
