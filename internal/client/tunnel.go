@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/coder/websocket"
@@ -17,6 +18,16 @@ import (
 const (
 	retryInterval = 5 * time.Second
 	maxRetries    = 10
+
+	// pingInterval keeps the tunnel alive across idle proxies (e.g. Cloudflare)
+	// and detects a silently-dead connection so we can reconnect.
+	pingInterval = 30 * time.Second
+	pingTimeout  = 10 * time.Second
+	writeTimeout = 30 * time.Second
+
+	// maxConcurrentRequests bounds how many forwarded requests we process at once
+	// so the read loop never stalls and the local service isn't flooded.
+	maxConcurrentRequests = 100
 )
 
 // tunnelClient maintains one WebSocket connection to the host and serves
@@ -39,17 +50,19 @@ func newTunnelClient(log *slog.Logger, handler *messageHandler, settings TunnelS
 // run connects (with retry) and serves until ctx is cancelled. It reconnects if
 // the connection drops while ctx is still live.
 func (c *tunnelClient) run(ctx context.Context) {
+	addr := c.state.settings.NtunlAddress
 	for ctx.Err() == nil {
 		conn, err := c.connect(ctx)
 		if err != nil {
-			c.log.Error("giving up connecting", "address", c.state.settings.NtunlAddress, "err", err)
+			c.log.Error("giving up connecting", "address", addr, "err", err)
 			return
 		}
 		c.serve(ctx, conn)
 		if ctx.Err() != nil {
+			c.log.Info("Client: shutting down", "address", addr)
 			return
 		}
-		c.log.Info("Client: disconnected from server, will retry")
+		c.log.Info("Client: disconnected, will retry", "address", addr, "in", retryInterval.String())
 		select {
 		case <-ctx.Done():
 			return
@@ -78,6 +91,7 @@ func (c *tunnelClient) connect(ctx context.Context) (*websocket.Conn, error) {
 
 	var lastErr error
 	for attempt := 1; attempt <= maxRetries && ctx.Err() == nil; attempt++ {
+		c.log.Info("Client: connecting", "url", url, "attempt", attempt)
 		conn, _, err := websocket.Dial(ctx, url, opts)
 		if err == nil {
 			conn.SetReadLimit(-1)
@@ -95,24 +109,98 @@ func (c *tunnelClient) connect(ctx context.Context) (*websocket.Conn, error) {
 	return nil, lastErr
 }
 
-// serve reads commands until the connection closes.
+// serve runs the read loop. Each forwarded request is handled in its own
+// goroutine so the loop keeps reading; a keepalive pinger detects dead peers.
 func (c *tunnelClient) serve(ctx context.Context, conn *websocket.Conn) {
-	defer conn.Close(websocket.StatusNormalClosure, "")
+	// connCtx cancels this connection's work (handlers, pinger) on shutdown or
+	// when the read loop exits — closing the conn unblocks a stuck Read.
+	connCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	var writeMu sync.Mutex
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, maxConcurrentRequests)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		c.keepalive(connCtx, conn)
+	}()
+
+readLoop:
 	for {
-		_, data, err := conn.Read(ctx)
+		_, data, err := conn.Read(connCtx)
 		if err != nil {
-			return
+			if connCtx.Err() != nil {
+				c.log.Debug("read loop stopped (context cancelled)")
+			} else {
+				c.log.Warn("Client: connection closed", "err", err)
+			}
+			break
 		}
+
 		cmd, err := protocol.Unmarshal(data)
 		if err != nil {
 			c.log.Error("bad command from server", "err", err)
 			continue
 		}
-		c.dispatch(ctx, conn, cmd)
+
+		switch cmd.CommandType {
+		case protocol.CmdHttpRequest:
+			select {
+			case sem <- struct{}{}:
+			case <-connCtx.Done():
+				break readLoop
+			}
+			wg.Add(1)
+			go func(cmd *protocol.Command) {
+				defer wg.Done()
+				defer func() { <-sem }()
+				c.handleRequest(connCtx, conn, &writeMu, cmd)
+			}(cmd)
+		default:
+			c.dispatchControl(cmd)
+		}
+	}
+
+	cancel()
+	conn.Close(websocket.StatusNormalClosure, "")
+	wg.Wait()
+}
+
+// handleRequest processes one forwarded HTTP request and writes the response.
+func (c *tunnelClient) handleRequest(ctx context.Context, conn *websocket.Conn, writeMu *sync.Mutex, cmd *protocol.Command) {
+	resp, err := c.handler.handle(ctx, cmd, c.state)
+	if err != nil {
+		if ctx.Err() == nil {
+			c.log.Error("error handling request", "err", err)
+		}
+		return
+	}
+	raw, err := resp.Marshal()
+	if err != nil {
+		c.log.Error("marshal response", "err", err)
+		return
+	}
+	if err := c.writeMsg(ctx, conn, writeMu, raw); err != nil {
+		if ctx.Err() == nil {
+			c.log.Error("write response", "err", err)
+		}
 	}
 }
 
-func (c *tunnelClient) dispatch(ctx context.Context, conn *websocket.Conn, cmd *protocol.Command) {
+// writeMsg serializes writes (coder/websocket allows only one writer) and bounds
+// each write with a timeout so a stuck write can't wedge a handler forever.
+func (c *tunnelClient) writeMsg(ctx context.Context, conn *websocket.Conn, writeMu *sync.Mutex, raw []byte) error {
+	writeMu.Lock()
+	defer writeMu.Unlock()
+	wctx, cancel := context.WithTimeout(ctx, writeTimeout)
+	defer cancel()
+	return conn.Write(wctx, websocket.MessageBinary, raw)
+}
+
+// dispatchControl handles non-request messages (echo, url info).
+func (c *tunnelClient) dispatchControl(cmd *protocol.Command) {
 	switch cmd.CommandType {
 	case protocol.CmdEcho:
 		c.log.Info(cmd.Data)
@@ -124,19 +212,29 @@ func (c *tunnelClient) dispatch(ctx context.Context, conn *websocket.Conn, cmd *
 		}
 		c.state.setInfo(&info)
 		c.log.Info("Your Url: " + info.Url)
-	case protocol.CmdHttpRequest:
-		resp, err := c.handler.handle(ctx, cmd, c.state)
-		if err != nil {
-			c.log.Error("error handling message", "err", err)
+	}
+}
+
+// keepalive pings the peer periodically; a failed ping closes the connection so
+// the read loop unblocks and run() reconnects.
+func (c *tunnelClient) keepalive(ctx context.Context, conn *websocket.Conn) {
+	t := time.NewTicker(pingInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
 			return
-		}
-		raw, err := resp.Marshal()
-		if err != nil {
-			c.log.Error("marshal response", "err", err)
-			return
-		}
-		if err := conn.Write(ctx, websocket.MessageBinary, raw); err != nil {
-			c.log.Error("write response", "err", err)
+		case <-t.C:
+			pctx, cancel := context.WithTimeout(ctx, pingTimeout)
+			err := conn.Ping(pctx)
+			cancel()
+			if err != nil {
+				if ctx.Err() == nil {
+					c.log.Warn("keepalive ping failed; reconnecting", "err", err)
+					conn.Close(websocket.StatusGoingAway, "ping timeout")
+				}
+				return
+			}
 		}
 	}
 }

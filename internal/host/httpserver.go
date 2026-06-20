@@ -85,7 +85,7 @@ func (s *HttpServer) handle(w http.ResponseWriter, r *http.Request) {
 		client = s.tunnel.GetClient(clientName)
 	}
 	if client == nil {
-		w.WriteHeader(s.defaultCode)
+		s.writeNotFound(w)
 		return
 	}
 
@@ -183,3 +183,38 @@ func valueOr(v, fallback string) string {
 	}
 	return v
 }
+
+// writeNotFound serves a generic HTML page (with the configured status code) when
+// no client is connected for the requested subdomain.
+func (s *HttpServer) writeNotFound(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(s.defaultCode)
+	_, _ = io.WriteString(w, notFoundPage)
+}
+
+const notFoundPage = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tunnel not available</title>
+<style>
+  html,body{height:100%;margin:0}
+  body{display:flex;align-items:center;justify-content:center;
+       font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       background:#0f172a;color:#e2e8f0}
+  .card{text-align:center;padding:2.5rem 3rem}
+  .code{font-size:4rem;font-weight:700;letter-spacing:-2px;color:#38bdf8;margin:0}
+  h1{font-size:1.25rem;font-weight:600;margin:.5rem 0 .25rem}
+  p{color:#94a3b8;margin:.25rem 0}
+</style>
+</head>
+<body>
+  <div class="card">
+    <p class="code">404</p>
+    <h1>Tunnel not available</h1>
+    <p>No client is currently connected for this address.</p>
+  </div>
+</body>
+</html>`

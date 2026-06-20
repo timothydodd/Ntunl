@@ -63,9 +63,9 @@ its URL. Set `desiredSubdomain` in the client config to request a specific name
 (used if it's currently free).
 
 ### Docker
+Only the host ships as a container image; run the client as a native binary.
 ``` bash
 docker build -f build/Dockerfile.host -t ntunl-host .
-docker build -f build/Dockerfile.client -t ntunl-client .
 ```
 
 

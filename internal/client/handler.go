@@ -101,7 +101,7 @@ func (h *messageHandler) handle(ctx context.Context, cmd *protocol.Command, stat
 	}
 
 	target := compress.CombineUrlPath(state.settings.Address, reqData.Path)
-	h.log.Debug(fmt.Sprintf("%s: %s", reqData.Method, reqData.Path))
+	started := time.Now()
 
 	var bodyReader io.Reader
 	if len(reqData.Content) > 0 {
@@ -133,7 +133,7 @@ func (h *messageHandler) handle(ctx context.Context, cmd *protocol.Command, stat
 
 	resp, err := h.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("send request: %w", err)
+		return nil, fmt.Errorf("%s %s -> %s: %w", reqData.Method, reqData.Path, target, err)
 	}
 	defer resp.Body.Close()
 
@@ -141,6 +141,12 @@ func (h *messageHandler) handle(ctx context.Context, cmd *protocol.Command, stat
 	if err != nil {
 		return nil, err
 	}
+
+	h.log.Info("proxied",
+		"method", reqData.Method,
+		"path", reqData.Path,
+		"status", respData.StatusCode,
+		"ms", time.Since(started).Milliseconds())
 
 	respBytes, err := json.Marshal(respData)
 	if err != nil {

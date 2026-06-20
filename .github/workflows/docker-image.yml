@@ -37,16 +37,3 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-host:${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Build and push NtunlClient
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./build/Dockerfile.client
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:${{ github.ref_name }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
