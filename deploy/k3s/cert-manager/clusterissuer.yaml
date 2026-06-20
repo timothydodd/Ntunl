@@ -1,0 +1,20 @@
+# Let's Encrypt issuer using Cloudflare DNS-01 (required for wildcard certs —
+# HTTP-01 cannot validate a wildcard). Switch the server to the staging URL while
+# testing to avoid rate limits:
+#   https://acme-staging-v02.api.letsencrypt.org/directory
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-cloudflare
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: you@example.com # CHANGE — Let's Encrypt notifications
+    privateKeySecretRef:
+      name: letsencrypt-cloudflare-account
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token

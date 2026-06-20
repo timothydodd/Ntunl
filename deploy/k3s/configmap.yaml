@@ -5,8 +5,13 @@ metadata:
   namespace: ntunl
 data:
   # Mounted at /etc/ntunl/host.json; the container reads it via NTUNL_CONFIG.
-  # Set clientDomain.domain to YOUR domain — it is used to render public URLs and
-  # must match the wildcard DNS / ingress host below.
+  # Set clientDomain.domain to YOUR domain — used to render public URLs.
+  #
+  # clientDomain.subDomains controls subdomain assignment:
+  #   - Non-empty list -> POOL mode: the host hands out a free name from this list.
+  #     Route each one (apple/banana/cherry...) to the host; no wildcard DNS needed.
+  #     This is the easy path for Cloudflare Tunnel (one public hostname per name).
+  #   - Empty list -> fully dynamic random names (needs wildcard DNS / *.domain).
   host.json: |
     {
       "tunnelHost": {
@@ -14,7 +19,7 @@ data:
         "port": 8001,
         "clientDomain": {
           "domain": "example.com",
-          "subDomains": []
+          "subDomains": ["apple", "banana", "cherry", "elderberry"]
         },
         "ssl": {
           "enabled": false,

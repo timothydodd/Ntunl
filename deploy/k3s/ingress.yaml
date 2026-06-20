@@ -1,9 +1,11 @@
 # Traefik ingress (bundled with k3s). Replace example.com with your domain.
 #
-# DNS required:
-#   *.example.com        A/CNAME -> your k3s ingress IP   (client tunnels + proxy)
-#   tunnel.example.com   A/CNAME -> your k3s ingress IP   (client WebSocket)
-#   portal.example.com   A/CNAME -> your k3s ingress IP   (admin/user portal)
+# DNS: a single DNS-only (grey-cloud) wildcard A record covers everything —
+#   *.example.com   A   <k3s ingress/Traefik external IP>
+# It resolves portal./tunnel./ and every client subdomain. A records can't carry
+# a port, so clients use 443 (https/wss) / 80 (http); Traefik listens on those and
+# routes to ports 8002/8001/9200 by hostname. Find the IP with:
+#   kubectl -n kube-system get svc traefik -o wide
 #
 # Note: the wildcard also matches tunnel./portal., but exact host rules take
 # priority in Traefik. "tunnel" and "portal" route to those ports, not the proxy,
@@ -56,11 +58,10 @@ spec:
                 name: ntunl-host
                 port:
                   number: 9200
-  # Uncomment once you have a wildcard TLS cert in the secret below
-  # (e.g. issued by cert-manager). Required for wss:// and https:// URLs.
-  # tls:
-  #   - hosts:
-  #       - "*.example.com"
-  #       - portal.example.com
-  #       - tunnel.example.com
-  #     secretName: ntunl-wildcard-tls
+  # Wildcard TLS issued by cert-manager (see cert-manager/). The wildcard cert
+  # covers portal./tunnel./ and every client subdomain. Required for wss:// and
+  # https:// URLs.
+  tls:
+    - hosts:
+        - "*.example.com"
+      secretName: ntunl-wildcard-tls

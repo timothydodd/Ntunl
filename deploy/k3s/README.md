@@ -29,8 +29,13 @@ storage provisioner (for the SQLite volume) and **Traefik** (ingress).
    and `ingress.yaml` (the three hosts).
 3. **Set the admin password** in `secret.yaml` (or delete the Secret to fall back
    to `admin`/`admin`). It only applies on first run with an empty database.
-4. **DNS**: point `*.<domain>`, `tunnel.<domain>`, and `portal.<domain>` at your
-   k3s ingress IP.
+4. **DNS**: one **DNS-only** wildcard A record covers everything (it also matches
+   `portal.`/`tunnel.`):
+   ```
+   *.<domain>   A   <traefik external IP>   # kubectl -n kube-system get svc traefik -o wide
+   ```
+   A records can't specify a port, so clients reach 443/80 and Traefik routes by
+   hostname to ports 8002/8001/9200.
 
 ## Apply
 
@@ -58,10 +63,10 @@ kubectl -n ntunl logs deploy/ntunl-host
 ## TLS / HTTPS
 
 Public URLs are `https://<sub>.<domain>` and clients use `wss://`, so you need a
-**wildcard certificate** at the ingress. The simplest path is cert-manager with a
-DNS-01 issuer producing `*.<domain>`; put it in `ntunl-wildcard-tls` and uncomment
-the `tls:` block in `ingress.yaml`. Until then, traffic is plain HTTP and clients
-must use `sslEnabled: false` against `tunnel.<domain>:80`.
+**wildcard certificate** at the ingress (the `tls:` block in `ingress.yaml` already
+references `ntunl-wildcard-tls`). Issue it with cert-manager + Cloudflare DNS-01 —
+see [`cert-manager/`](./cert-manager). Until the cert is issued, traffic is plain
+HTTP and clients must use `sslEnabled: false` against `<domain>:80`.
 
 ## Notes
 

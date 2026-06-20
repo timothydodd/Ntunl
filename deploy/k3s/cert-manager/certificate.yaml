@@ -1,0 +1,17 @@
+# Wildcard certificate for the NTunl host. cert-manager writes the issued cert
+# into the ntunl-wildcard-tls secret, which the Ingress references.
+# The wildcard covers every client subdomain AND portal./tunnel. hostnames.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ntunl-wildcard
+  namespace: ntunl
+spec:
+  secretName: ntunl-wildcard-tls
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
+  commonName: "*.example.com" # CHANGE to your domain
+  dnsNames:
+    - "*.example.com" # CHANGE
+    - "example.com" # CHANGE (apex, optional)

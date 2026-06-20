@@ -175,14 +175,43 @@ func (h *TunnelHost) handleConn(w http.ResponseWriter, r *http.Request) {
 	h.readPump(ctx, client)
 }
 
-// assignSubdomain picks a free subdomain. If the client requested one and it is
-// not currently in use, it gets it; otherwise a random free name is generated.
-// The chosen name is marked live via a placeholder so two connections can't claim
-// it concurrently.
+// assignSubdomain picks a free subdomain and marks it live via a placeholder so
+// two connections can't claim it concurrently. Behavior depends on whether a
+// fixed pool is configured (clientDomain.subDomains):
+//
+//   - Pool mode: only names in the pool are routable (each is DNS-routed to the
+//     host). A requested name is honored if it's a free pool member; otherwise the
+//     first free pool member is assigned. Rejected when the pool is exhausted.
+//   - Fully dynamic (empty pool): a requested name is used if free; otherwise a
+//     random word+number is generated (requires wildcard DNS to be routable).
 func (h *TunnelHost) assignSubdomain(requested string) (string, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	pool := h.settings.ClientDomain.SubDomains
+	if len(pool) > 0 {
+		// Prefer the requested name if it is a free member of the pool.
+		if requested != "" {
+			for _, name := range pool {
+				if lower(name) == lower(requested) {
+					if _, live := h.clients[lower(name)]; !live {
+						h.clients[lower(name)] = nil // placeholder
+						return name, nil
+					}
+					break // in pool but taken — fall through to next free member
+				}
+			}
+		}
+		for _, name := range pool {
+			if _, live := h.clients[lower(name)]; !live {
+				h.clients[lower(name)] = nil // placeholder
+				return name, nil
+			}
+		}
+		return "", errors.New("no subdomains available")
+	}
+
+	// Fully dynamic: requested-if-free, else a random word+number.
 	if requested != "" {
 		if _, live := h.clients[lower(requested)]; live {
 			return "", errors.New("requested subdomain already in use")

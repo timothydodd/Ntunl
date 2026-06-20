@@ -19,11 +19,15 @@ from the .NET version).
   role, analogous to ngrok's cloud). Runs three listeners:
   - a WebSocket server (default `:8001`) that tunnel clients dial into. Clients
     **authenticate with a bearer API token** on the handshake; the host maps the
-    token to a user and **assigns a subdomain dynamically** — the client's
-    requested name (`Ntunl-Subdomain` header / `desiredSubdomain` config) if it's
-    free, otherwise a random `word+number` — then pushes back the public URL.
-    Subdomains are first-come-first-served per live connection; nothing is
-    pre-reserved.
+    token to a user and **assigns a subdomain** (`assignSubdomain` in tunnel.go),
+    then pushes back the public URL. Two modes, set by `clientDomain.subDomains`:
+    - **Pool** (list non-empty): assign a free name from that fixed list (honoring
+      a requested one if it's a free pool member), reject when exhausted. Route a
+      handful of subdomains to the host — no wildcard DNS needed.
+    - **Fully dynamic** (empty list): requested name if free, else a random
+      `word+number` (needs wildcard DNS to be routable).
+    Either way it's first-come-first-served per live connection; nothing is
+    pre-reserved per user.
   - a public HTTP server (default `:9200`) that receives outside traffic, maps the
     request's subdomain (`apple.domain.com` → client `apple`) to a connected
     client, forwards the request over the socket, relays the response, and counts
