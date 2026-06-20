@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ntunl-host
+  namespace: ntunl
+  labels:
+    app: ntunl-host
+spec:
+  replicas: 1 # SQLite is a single-writer store; keep this at 1.
+  strategy:
+    type: Recreate # never run two pods against the same RWO volume.
+  selector:
+    matchLabels:
+      app: ntunl-host
+  template:
+    metadata:
+      labels:
+        app: ntunl-host
+    spec:
+      containers:
+        - name: host
+          # Build & push from build/Dockerfile.host, then set your image here.
+          image: timdoddcool/ntunl-host:latest
+          imagePullPolicy: IfNotPresent
+          args: ["-config", "/etc/ntunl/host.json"]
+          env:
+            - name: NTUNL_CONFIG
+              value: /etc/ntunl/host.json
+          envFrom:
+            - secretRef:
+                name: ntunl-host-admin
+                optional: true # falls back to admin/admin if the Secret is absent
+          ports:
+            - name: tunnel
+              containerPort: 8001
+            - name: proxy
+              containerPort: 9200
+            - name: portal
+              containerPort: 8002
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/ntunl
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: portal
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: portal
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: "1"
+              memory: 256Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ntunl-host-data
+        - name: config
+          configMap:
+            name: ntunl-host-config
+            items:
+              - key: host.json
+                path: host.json

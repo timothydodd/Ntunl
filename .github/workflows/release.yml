@@ -5,100 +5,47 @@ on:
     tags:
       - "release-*"
 
+permissions:
+  contents: write
+
 jobs:
-  build_windows_and_linux:
+  build_and_release:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v3
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          dotnet-version: "9.x"
+          go-version: "1.23"
+          cache: true
 
-      - name: Publish NtunlClient (Windows x64)
-        run: dotnet publish src/NtunlClient/NtunlClient.csproj --configuration Release --output publish/windows-x64/NtunlClient -r win-x64 --self-contained
-
-      - name: Publish NtunlHost (Windows x64)
-        run: dotnet publish src/NtunlHost/NtunlHost.csproj --configuration Release --output publish/windows-x64/NtunlHost -r win-x64 --self-contained
-
-      - name: Publish NtunlClient (Linux x64)
-        run: dotnet publish src/NtunlClient/NtunlClient.csproj --configuration Release --output publish/linux-x64/NtunlClient -r linux-x64 --self-contained
-
-      - name: Publish NtunlHost (Linux x64)
-        run: dotnet publish src/NtunlHost/NtunlHost.csproj --configuration Release --output publish/linux-x64/NtunlHost -r linux-x64 --self-contained
-
-      - name: Generate NtunlClient ZIP (Windows x64)
+      - name: Build cross-platform archives
         run: |
-          cd publish/windows-x64/NtunlClient
-          zip -r ../../../NtunlClient_windows_x64.zip .
+          set -euo pipefail
+          mkdir -p dist
+          targets="linux/amd64 linux/arm64 windows/amd64 darwin/amd64 darwin/arm64"
+          for t in $targets; do
+            os=${t%/*}; arch=${t#*/}
+            ext=""; [ "$os" = "windows" ] && ext=".exe"
+            out="pkg_${os}_${arch}"
+            mkdir -p "$out"
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w" -o "$out/ntunl-host$ext" ./cmd/host
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w" -o "$out/ntunl-client$ext" ./cmd/client
+            cp README.md LICENSE.txt "$out/" 2>/dev/null || true
+            cp -r configs "$out/configs" 2>/dev/null || true
+            if [ "$os" = "windows" ]; then
+              (cd "$out" && zip -qr "../dist/ntunl_${os}_${arch}.zip" .)
+            else
+              tar -czf "dist/ntunl_${os}_${arch}.tar.gz" -C "$out" .
+            fi
+          done
+          ls -la dist
 
-      - name: Generate NtunlHost ZIP (Windows x64)
-        run: |
-          cd publish/windows-x64/NtunlHost
-          zip -r ../../../NtunlHost_windows_x64.zip .
-
-      - name: Generate NtunlClient ZIP (Linux x64)
-        run: |
-          cd publish/linux-x64/NtunlClient
-          zip -r ../../../NtunlClient_linux_x64.zip .
-
-      - name: Generate NtunlHost ZIP (Linux x64)
-        run: |
-          cd publish/linux-x64/NtunlHost
-          zip -r ../../../NtunlHost_linux_x64.zip .
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            Release notes for ${{ github.ref }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload NtunlClient Release Asset (Windows x64)
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: NtunlClient_windows_x64.zip
-          asset_name: NtunlClient_windows_x64.zip
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload NtunlHost Release Asset (Windows x64)
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: NtunlHost_windows_x64.zip
-          asset_name: NtunlHost_windows_x64.zip
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload NtunlClient Release Asset (Linux x64)
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: NtunlClient_linux_x64.zip
-          asset_name: NtunlClient_linux_x64.zip
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload NtunlHost Release Asset (Linux x64)
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: NtunlHost_linux_x64.zip
-          asset_name: NtunlHost_linux_x64.zip
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: dist/*
+          generate_release_notes: true

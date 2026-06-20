@@ -1,0 +1,49 @@
+{{define "content"}}
+<h1 class="text-2xl font-semibold mb-6">Users</h1>
+
+<section class="bg-white rounded-lg shadow mb-8 max-w-2xl">
+    <div class="px-5 py-3 border-b font-medium">Create user</div>
+    <form method="post" action="/admin/users" class="p-5 flex flex-wrap gap-2 items-end">
+        <input name="username" placeholder="Username" required
+               class="rounded border border-slate-300 px-3 py-2 text-sm">
+        <input name="password" type="password" placeholder="Password (min 8)" required
+               class="rounded border border-slate-300 px-3 py-2 text-sm">
+        <select name="role" class="rounded border border-slate-300 px-3 py-2 text-sm">
+            <option value="user">user</option>
+            <option value="admin">admin</option>
+        </select>
+        <button class="rounded bg-slate-900 text-white px-4 py-2 text-sm hover:bg-slate-700">Create</button>
+    </form>
+</section>
+
+<section class="bg-white rounded-lg shadow">
+    <div class="px-5 py-3 border-b font-medium">All users</div>
+    <table class="w-full text-sm">
+        <thead class="text-left text-slate-500">
+            <tr><th class="px-5 py-2">Username</th><th class="px-5 py-2">Role</th><th class="px-5 py-2">Status</th><th class="px-5 py-2">Actions</th></tr>
+        </thead>
+        <tbody>
+        {{range .Users}}
+            <tr class="border-t align-middle">
+                <td class="px-5 py-2">{{.Username}}</td>
+                <td class="px-5 py-2">{{.Role}}</td>
+                <td class="px-5 py-2">{{if .Disabled}}<span class="text-red-600">disabled</span>{{else}}<span class="text-green-700">active</span>{{end}}</td>
+                <td class="px-5 py-2">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        {{if .Disabled}}
+                        <form method="post" action="/admin/users/{{.ID}}/enable"><button class="text-green-700 hover:underline">Enable</button></form>
+                        {{else}}
+                        <form method="post" action="/admin/users/{{.ID}}/disable"><button class="text-red-600 hover:underline">Disable</button></form>
+                        {{end}}
+                        <form method="post" action="/admin/users/{{.ID}}/reset-password" class="flex gap-1">
+                            <input name="password" type="password" placeholder="New password" class="rounded border border-slate-300 px-2 py-1 text-xs">
+                            <button class="text-blue-600 hover:underline">Reset</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        {{end}}
+        </tbody>
+    </table>
+</section>
+{{end}}

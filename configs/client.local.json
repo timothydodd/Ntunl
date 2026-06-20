@@ -1,0 +1,19 @@
+{
+    "tunnels": [
+        {
+            "sslEnabled": false,
+            "allowInvalidCertificates": true,
+            "ntunlAddress": "localhost:8001",
+            "desiredSubdomain": "",
+            "address": "http://localhost:8080",
+            "hostHeader": "",
+            "customHeader": {},
+            "rewriteUrlEnabled": false,
+            "rewriteUrlPattern": ""
+        }
+    ],
+    "inspector": {
+        "enabled": true,
+        "port": 6900
+    }
+}

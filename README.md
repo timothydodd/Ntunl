@@ -18,36 +18,54 @@ NTunl consists of two main components:
 - NTunl Server: Manages and exposes the tunnels, allowing clients to connect to the public interface.
 - NTunl Client: Connects to the NTunl Server to expose local or private services to the public internet.
 
+> **Note:** NTunl was rewritten from .NET to Go. The original .NET source is kept
+> for reference under [`_legacy/`](./_legacy). See
+> [`plans/go-migration.md`](./plans/go-migration.md) for the migration plan.
+
 ## Getting Started
 Prerequisites
-- .net 9 SDK installed on your machine.
+- Go 1.23+ installed on your machine.
 
 1. Installation
 Clone the repository:
 ``` bash
 git clone https://github.com/timothydodd/ntunl.git
 cd ntunl
-
-```
-2. Build the solution:
-``` bash
-dotnet build
+go mod tidy
 ```
 
-3. Run the server
-
+2. Build:
 ``` bash
-cd src/NTunlServer
-dotnet run
+go build ./...
 ```
 
-4. Run the client:
+3. Run the server (host) — serves the tunnel WS (`:8001`), public proxy (`:9200`),
+   and the admin/user portal (`:8002`). On first run it creates a default admin.
 
 ``` bash
+go run ./cmd/host -config configs/host.json
+```
 
-cd src/NTunlClient
-dotnet run
+4. Open the portal at `http://localhost:8002` and sign in with the default
+   account **`admin` / `admin`** (override via `NTUNL_ADMIN_USER` /
+   `NTUNL_ADMIN_PASSWORD`). **Change the password immediately** (Dashboard →
+   Change password). Create additional users as needed (Admin → Users).
 
+5. Authenticate the client (stores a token under your OS config dir), then run it:
+
+``` bash
+go run ./cmd/client login -portal http://localhost:8002
+go run ./cmd/client run -config configs/client.json
+```
+
+On connect the host assigns a public subdomain automatically and the client logs
+its URL. Set `desiredSubdomain` in the client config to request a specific name
+(used if it's currently free).
+
+### Docker
+``` bash
+docker build -f build/Dockerfile.host -t ntunl-host .
+docker build -f build/Dockerfile.client -t ntunl-client .
 ```
 
 

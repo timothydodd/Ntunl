@@ -1,0 +1,42 @@
+# ClusterIP service fronting all three host ports. Ingress (and/or the optional
+# LoadBalancer below) route external traffic to it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ntunl-host
+  namespace: ntunl
+  labels:
+    app: ntunl-host
+spec:
+  type: ClusterIP
+  selector:
+    app: ntunl-host
+  ports:
+    - name: tunnel
+      port: 8001
+      targetPort: tunnel
+    - name: proxy
+      port: 9200
+      targetPort: proxy
+    - name: portal
+      port: 8002
+      targetPort: portal
+---
+# OPTIONAL: expose the tunnel WebSocket directly on a node port via k3s servicelb,
+# instead of routing it through the ingress. Uncomment if your clients connect to
+# tunnel.<domain>:8001 directly (set client sslEnabled=false, ntunlAddress
+# host:8001). Delete the tunnel Ingress rule if you use this.
+#
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: ntunl-tunnel-lb
+#   namespace: ntunl
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     app: ntunl-host
+#   ports:
+#     - name: tunnel
+#       port: 8001
+#       targetPort: tunnel

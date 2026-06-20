@@ -1,0 +1,18 @@
+{
+    "tunnels": [
+        {
+            "sslEnabled": true,
+            "allowInvalidCertificates": false,
+            "ntunlAddress": "tunnel.mysite.com:443",
+            "address": "https://robododd.com",
+            "hostHeader": "robododd.com",
+            "customHeader": {},
+            "rewriteUrlEnabled": false,
+            "rewriteUrlPattern": "https://(robododd|www.robododd)\\.com"
+        }
+    ],
+    "inspector": {
+        "enabled": true,
+        "port": 6900
+    }
+}

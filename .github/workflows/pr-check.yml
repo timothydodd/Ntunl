@@ -11,18 +11,31 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v3
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          dotnet-version: "9.x"
+          go-version: "1.23"
+          cache: true
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Check formatting
+        # Advisory: reports unformatted files without failing the build.
+        # Flip to a hard gate (drop `continue-on-error`) once `go fmt ./...` is run.
+        continue-on-error: true
+        run: |
+          unformatted=$(gofmt -l $(git ls-files '*.go'))
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
 
-      - name: Build NtunlClient
-        run: dotnet build src/NtunlClient/NtunlClient.csproj --configuration Release --no-restore --verbosity minimal
+      - name: Vet
+        run: go vet ./...
 
-      - name: Build NtunlHost
-        run: dotnet build src/NtunlHost/NtunlHost.csproj --configuration Release --no-restore --verbosity minimal
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test ./...

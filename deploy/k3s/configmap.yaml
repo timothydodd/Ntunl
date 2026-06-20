@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ntunl-host-config
+  namespace: ntunl
+data:
+  # Mounted at /etc/ntunl/host.json; the container reads it via NTUNL_CONFIG.
+  # Set clientDomain.domain to YOUR domain — it is used to render public URLs and
+  # must match the wildcard DNS / ingress host below.
+  host.json: |
+    {
+      "tunnelHost": {
+        "hostName": "*",
+        "port": 8001,
+        "clientDomain": {
+          "domain": "example.com",
+          "subDomains": []
+        },
+        "ssl": {
+          "enabled": false,
+          "acceptInvalidCertificates": false
+        }
+      },
+      "httpHost": {
+        "hostName": "*",
+        "port": 9200,
+        "headers": {
+          "blackList": ["cf-*"],
+          "ipHeaderName": "X-Forwarded-For"
+        },
+        "defaultResponseCode": 404
+      },
+      "portal": {
+        "port": 8002,
+        "secure": true
+      },
+      "database": {
+        "path": "/data/ntunl.db"
+      }
+    }

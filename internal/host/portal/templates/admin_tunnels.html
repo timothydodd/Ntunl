@@ -1,0 +1,27 @@
+{{define "content"}}
+<h1 class="text-2xl font-semibold mb-6">Active Tunnels</h1>
+
+<section class="bg-white rounded-lg shadow">
+    <div class="px-5 py-3 border-b font-medium">Currently connected</div>
+    {{if .Tunnels}}
+    <table class="w-full text-sm">
+        <thead class="text-left text-slate-500">
+            <tr><th class="px-5 py-2">User</th><th class="px-5 py-2">Subdomain</th><th class="px-5 py-2">Remote</th><th class="px-5 py-2">Connected</th><th class="px-5 py-2">Requests</th></tr>
+        </thead>
+        <tbody>
+        {{range .Tunnels}}
+            <tr class="border-t">
+                <td class="px-5 py-2">{{.Username}}</td>
+                <td class="px-5 py-2 font-mono">{{.Subdomain}}</td>
+                <td class="px-5 py-2">{{.RemoteAddr}}</td>
+                <td class="px-5 py-2">{{.ConnectedAt}}</td>
+                <td class="px-5 py-2">{{.Requests}}</td>
+            </tr>
+        {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="px-5 py-4 text-slate-500 text-sm">No active tunnels.</p>
+    {{end}}
+</section>
+{{end}}

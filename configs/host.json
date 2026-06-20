@@ -1,0 +1,30 @@
+{
+    "tunnelHost": {
+        "hostName": "*",
+        "port": 8001,
+        "clientDomain": {
+            "domain": "dodd.rocks",
+            "subDomains": []
+        },
+        "ssl": {
+            "enabled": false,
+            "acceptInvalidCertificates": false
+        }
+    },
+    "httpHost": {
+        "hostName": "*",
+        "port": 9200,
+        "headers": {
+            "blackList": [ "cf-*" ],
+            "ipHeaderName": "X-Forwarded-For"
+        },
+        "defaultResponseCode": 404
+    },
+    "portal": {
+        "port": 8002,
+        "secure": false
+    },
+    "database": {
+        "path": "ntunl.db"
+    }
+}

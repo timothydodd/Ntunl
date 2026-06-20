@@ -1,0 +1,36 @@
+# VCS, docs, planning, deploy manifests — not needed to build the binaries
+.git
+.gitignore
+.dockerignore
+*.md
+_legacy
+plans
+deploy
+
+# CI / editor
+.github
+.vscode
+.idea
+.vs
+
+# Build outputs & binaries
+host
+client
+ntunl-host
+ntunl-client
+*.exe
+*.test
+*.out
+dist
+pkg_*
+vendor
+
+# Runtime data & secrets (never bake these into an image layer)
+cert.pem
+key.pem
+*.db
+*.db-shm
+*.db-wal
+credentials.json
+.env
+*.env

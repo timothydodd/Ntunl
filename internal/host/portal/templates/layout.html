@@ -1,0 +1,31 @@
+{{define "layout"}}<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} · NTunl</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-full text-slate-800">
+{{if .User}}
+<nav class="bg-slate-900 text-slate-200">
+    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center gap-6">
+        <a href="/" class="font-semibold text-white">NTunl</a>
+        <a href="/" class="hover:text-white">Dashboard</a>
+        <a href="/tokens" class="hover:text-white">Tokens</a>
+        {{if .User.IsAdmin}}
+        <a href="/admin/users" class="hover:text-white">Users</a>
+        <a href="/admin/tunnels" class="hover:text-white">Tunnels</a>
+        {{end}}
+        <span class="ml-auto text-slate-400">{{.User.Username}}</span>
+        <a href="/logout" class="hover:text-white">Sign out</a>
+    </div>
+</nav>
+{{end}}
+<main class="max-w-5xl mx-auto px-4 py-8">
+    {{if .Error}}<div class="mb-4 rounded bg-red-100 text-red-800 px-4 py-2">{{.Error}}</div>{{end}}
+    {{if .Ok}}<div class="mb-4 rounded bg-green-100 text-green-800 px-4 py-2">{{.Ok}}</div>{{end}}
+    {{template "content" .}}
+</main>
+</body>
+</html>{{end}}

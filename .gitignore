@@ -167,3 +167,33 @@ __blobstorage*
 
 # Nx
 **/.nx/cache/
+
+# Go
+/host
+/client
+/ntunl-host
+/ntunl-client
+*.exe
+*.test
+*.out
+*.coverprofile
+coverage.*
+/vendor/
+pkg_*/
+
+# Tailwind standalone CLI binary (downloaded for the static CSS build)
+/tailwindcss
+/tailwindcss.exe
+
+# NTunl runtime data & secrets
+cert.pem
+key.pem
+*.db
+*.db-shm
+*.db-wal
+credentials.json
+.env
+*.env
+
+# OS
+Thumbs.db

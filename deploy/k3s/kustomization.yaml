@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ntunl
+
+resources:
+  - namespace.yaml
+  - secret.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+# Override the image without editing deployment.yaml:
+#   images:
+#     - name: timdoddcool/ntunl-host
+#       newName: ghcr.io/youruser/ntunl-host
+#       newTag: v1.0.0

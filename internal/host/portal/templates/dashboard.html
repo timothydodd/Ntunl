@@ -1,0 +1,74 @@
+{{define "content"}}
+<h1 class="text-2xl font-semibold mb-6">Dashboard</h1>
+
+<section class="bg-white rounded-lg shadow mb-8">
+    <div class="px-5 py-3 border-b font-medium">Your tunnels</div>
+    {{if .Subdomains}}
+    <table class="w-full text-sm">
+        <thead class="text-left text-slate-500">
+            <tr>
+                <th class="px-5 py-2">Subdomain</th>
+                <th class="px-5 py-2">Public URL</th>
+                <th class="px-5 py-2">Status</th>
+                <th class="px-5 py-2">Remote</th>
+                <th class="px-5 py-2">Connected</th>
+                <th class="px-5 py-2">Requests</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{range .Subdomains}}
+            <tr class="border-t">
+                <td class="px-5 py-2 font-mono">{{.Name}}</td>
+                <td class="px-5 py-2"><a class="text-blue-600 hover:underline" href="{{.URL}}">{{.URL}}</a></td>
+                <td class="px-5 py-2">
+                    {{if .Online}}<span class="text-green-700">● online</span>
+                    {{else}}<span class="text-slate-400">○ offline</span>{{end}}
+                </td>
+                <td class="px-5 py-2">{{if .RemoteAddr}}{{.RemoteAddr}}{{else}}—{{end}}</td>
+                <td class="px-5 py-2">{{if .ConnectedAt}}{{.ConnectedAt}}{{else}}—{{end}}</td>
+                <td class="px-5 py-2">{{.Requests}}</td>
+            </tr>
+        {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="px-5 py-4 text-slate-500 text-sm">No active tunnels. Start the client (<code>client run</code>) to open one — you'll get a public URL automatically.</p>
+    {{end}}
+</section>
+
+<section class="bg-white rounded-lg shadow mb-8">
+    <div class="px-5 py-3 border-b font-medium">Recent requests</div>
+    {{if .Requests}}
+    <table class="w-full text-sm">
+        <thead class="text-left text-slate-500">
+            <tr><th class="px-5 py-2">Time</th><th class="px-5 py-2">Method</th><th class="px-5 py-2">Path</th><th class="px-5 py-2">Status</th></tr>
+        </thead>
+        <tbody>
+        {{range .Requests}}
+            <tr class="border-t">
+                <td class="px-5 py-2 font-mono">{{.Time}}</td>
+                <td class="px-5 py-2">{{.Method}}</td>
+                <td class="px-5 py-2 font-mono">{{.Path}}</td>
+                <td class="px-5 py-2">{{.Status}}</td>
+            </tr>
+        {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="px-5 py-4 text-slate-500 text-sm">No requests yet.</p>
+    {{end}}
+</section>
+
+<section class="bg-white rounded-lg shadow max-w-md">
+    <div class="px-5 py-3 border-b font-medium">Change password</div>
+    <form method="post" action="/account/password" class="p-5 space-y-3">
+        <input name="current_password" type="password" placeholder="Current password" required
+               class="w-full rounded border border-slate-300 px-3 py-2">
+        <input name="new_password" type="password" placeholder="New password (min 8)" required
+               class="w-full rounded border border-slate-300 px-3 py-2">
+        <input name="confirm_password" type="password" placeholder="Confirm new password" required
+               class="w-full rounded border border-slate-300 px-3 py-2">
+        <button class="rounded bg-slate-900 text-white px-4 py-2 text-sm hover:bg-slate-700">Update</button>
+    </form>
+</section>
+{{end}}

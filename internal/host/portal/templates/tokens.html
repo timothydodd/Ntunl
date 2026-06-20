@@ -1,0 +1,49 @@
+{{define "content"}}
+<h1 class="text-2xl font-semibold mb-6">API Tokens</h1>
+
+{{if .NewToken}}
+<div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
+    <p class="text-sm text-amber-800 mb-2">Copy this token now — it won't be shown again:</p>
+    <code class="block bg-white border rounded px-3 py-2 font-mono text-sm break-all">{{.NewToken}}</code>
+</div>
+{{end}}
+
+<section class="bg-white rounded-lg shadow mb-8 max-w-md">
+    <div class="px-5 py-3 border-b font-medium">Create token</div>
+    <form method="post" action="/tokens" class="p-5 flex gap-2">
+        <input name="name" placeholder="Name (e.g. laptop)"
+               class="flex-1 rounded border border-slate-300 px-3 py-2 text-sm">
+        <button class="rounded bg-slate-900 text-white px-4 py-2 text-sm hover:bg-slate-700">Create</button>
+    </form>
+</section>
+
+<section class="bg-white rounded-lg shadow">
+    <div class="px-5 py-3 border-b font-medium">Your tokens</div>
+    {{if .Tokens}}
+    <table class="w-full text-sm">
+        <thead class="text-left text-slate-500">
+            <tr><th class="px-5 py-2">Name</th><th class="px-5 py-2">Created</th><th class="px-5 py-2">Last used</th><th class="px-5 py-2">Status</th><th class="px-5 py-2"></th></tr>
+        </thead>
+        <tbody>
+        {{range .Tokens}}
+            <tr class="border-t">
+                <td class="px-5 py-2">{{.Name}}</td>
+                <td class="px-5 py-2">{{.Created}}</td>
+                <td class="px-5 py-2">{{.LastUsed}}</td>
+                <td class="px-5 py-2">{{if .Revoked}}<span class="text-slate-400">revoked</span>{{else}}<span class="text-green-700">active</span>{{end}}</td>
+                <td class="px-5 py-2 text-right">
+                    {{if not .Revoked}}
+                    <form method="post" action="/tokens/{{.ID}}/revoke">
+                        <button class="text-red-600 hover:underline">Revoke</button>
+                    </form>
+                    {{end}}
+                </td>
+            </tr>
+        {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="px-5 py-4 text-slate-500 text-sm">No tokens yet.</p>
+    {{end}}
+</section>
+{{end}}

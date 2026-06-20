@@ -1,0 +1,66 @@
+# Traefik ingress (bundled with k3s). Replace example.com with your domain.
+#
+# DNS required:
+#   *.example.com        A/CNAME -> your k3s ingress IP   (client tunnels + proxy)
+#   tunnel.example.com   A/CNAME -> your k3s ingress IP   (client WebSocket)
+#   portal.example.com   A/CNAME -> your k3s ingress IP   (admin/user portal)
+#
+# Note: the wildcard also matches tunnel./portal., but exact host rules take
+# priority in Traefik. "tunnel" and "portal" route to those ports, not the proxy,
+# so a client assigned either name as its subdomain won't be reachable.
+#
+# Traefik forwards the Host header unchanged, which the proxy needs for subdomain
+# routing, and upgrades WebSocket connections automatically.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ntunl-host
+  namespace: ntunl
+  annotations:
+    # For HTTPS, terminate TLS here (e.g. a wildcard cert via cert-manager) and
+    # add the tls: block below. websecure entrypoint is k3s/Traefik's :443.
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  ingressClassName: traefik
+  rules:
+    # Admin/user portal.
+    - host: portal.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ntunl-host
+                port:
+                  number: 8002
+    # Client tunnel WebSocket endpoint (clients dial wss://tunnel.example.com).
+    - host: tunnel.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ntunl-host
+                port:
+                  number: 8001
+    # Public proxy: every client subdomain lands here and is routed by Host.
+    - host: "*.example.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ntunl-host
+                port:
+                  number: 9200
+  # Uncomment once you have a wildcard TLS cert in the secret below
+  # (e.g. issued by cert-manager). Required for wss:// and https:// URLs.
+  # tls:
+  #   - hosts:
+  #       - "*.example.com"
+  #       - portal.example.com
+  #       - tunnel.example.com
+  #     secretName: ntunl-wildcard-tls

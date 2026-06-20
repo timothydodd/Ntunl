@@ -11,33 +11,42 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Build and push NtunlHost
-        uses: docker/build-push-action@v6.5.0
+        uses: docker/build-push-action@v6
         with:
-          context: ./src/
-          file: ./src/NtunlHost/Dockerfile
+          context: .
+          file: ./build/Dockerfile.host
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-host:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-host:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      # - name: Build and push NtunlClient
-      #   uses: docker/build-push-action@v6.5.0
-      #   with:
-      #     context: ./src/
-      #     file: ./src/NtunlClient/Dockerfile
-      #     push: true
-      #     tags: |
-      #       ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:latest
-      #       ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:${{ github.ref_name }}
+      - name: Build and push NtunlClient
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./build/Dockerfile.client
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/ntunl-client:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
