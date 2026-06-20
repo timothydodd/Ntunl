@@ -11,6 +11,7 @@
             "rewriteUrlPattern": "https://(robododd|www.robododd)\\.com"
         }
     ],
+    "portalAddress": "https://portal.mysite.com",
     "inspector": {
         "enabled": true,
         "port": 6900

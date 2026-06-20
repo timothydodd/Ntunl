@@ -4,6 +4,11 @@ package client
 type Config struct {
 	Tunnels   []TunnelSetting `json:"tunnels"`
 	Inspector InspectorConfig `json:"inspector"`
+	// PortalAddress is the base URL of the host portal for `client login`
+	// (e.g. https://portal.example.com). When empty, login falls back to
+	// http://<tunnelHost>:8002. Use this when the portal is a different hostname
+	// than the tunnel endpoint (e.g. behind an ingress / Cloudflare).
+	PortalAddress string `json:"portalAddress"`
 }
 
 type TunnelSetting struct {

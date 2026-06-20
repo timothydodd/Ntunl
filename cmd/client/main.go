@@ -72,16 +72,22 @@ func runLogin(args []string) {
 	insecure := fs.Bool("insecure", false, "skip TLS verification (self-signed portal)")
 	_ = fs.Parse(args)
 
+	cfg, _ := loadClientConfig(*configPath)
+
 	url := *portal
 	if url == "" {
-		url = derivePortalURL(*configPath)
+		url = cfg.PortalAddress
 	}
 	if url == "" {
-		fmt.Fprintln(os.Stderr, "could not determine portal URL; pass -portal http://host:8002")
+		url = derivePortalURL(cfg)
+	}
+	if url == "" {
+		fmt.Fprintln(os.Stderr, "could not determine portal URL; set portalAddress in config or pass -portal https://portal.host")
 		os.Exit(2)
 	}
 
-	if err := client.Login(url, *insecure); err != nil {
+	hosts := tunnelHosts(cfg)
+	if err := client.Login(url, hosts, *insecure); err != nil {
 		fmt.Fprintln(os.Stderr, "login failed:", err)
 		os.Exit(1)
 	}
@@ -89,30 +95,50 @@ func runLogin(args []string) {
 
 func runLogout(args []string) {
 	fs := flag.NewFlagSet("logout", flag.ExitOnError)
-	portal := fs.String("portal", "", "portal URL or host to log out of")
+	host := fs.String("host", "", "tunnel host to log out of (defaults to config's tunnel hosts)")
 	configPath := fs.String("config", "client.json", "client config used to derive the host")
 	_ = fs.Parse(args)
 
-	host := *portal
-	if host == "" {
-		host = derivePortalURL(*configPath)
+	var hosts []string
+	if *host != "" {
+		hosts = []string{*host}
+	} else {
+		cfg, _ := loadClientConfig(*configPath)
+		hosts = tunnelHosts(cfg)
 	}
-	if host == "" {
-		fmt.Fprintln(os.Stderr, "could not determine host; pass -portal http://host:8002")
+	if len(hosts) == 0 {
+		fmt.Fprintln(os.Stderr, "could not determine host; pass -host <tunnel-host>")
 		os.Exit(2)
 	}
 
-	if err := client.Logout(host); err != nil {
+	if err := client.Logout(hosts); err != nil {
 		fmt.Fprintln(os.Stderr, "logout failed:", err)
 		os.Exit(1)
 	}
 }
 
-// derivePortalURL builds a default portal URL (http://<host>:8002) from the first
-// tunnel's NtunlAddress in the config.
-func derivePortalURL(configPath string) string {
+func loadClientConfig(configPath string) (client.Config, error) {
 	var cfg client.Config
-	if err := config.Load(configPath, &cfg); err != nil || len(cfg.Tunnels) == 0 {
+	err := config.Load(configPath, &cfg)
+	return cfg, err
+}
+
+// tunnelHosts returns the NtunlAddress of every tunnel in the config.
+func tunnelHosts(cfg client.Config) []string {
+	hosts := make([]string, 0, len(cfg.Tunnels))
+	for _, t := range cfg.Tunnels {
+		if t.NtunlAddress != "" {
+			hosts = append(hosts, t.NtunlAddress)
+		}
+	}
+	return hosts
+}
+
+// derivePortalURL builds a fallback portal URL (http://<host>:8002) from the first
+// tunnel's NtunlAddress — only correct when the portal is on the same host as the
+// tunnel; otherwise set portalAddress in config or pass -portal.
+func derivePortalURL(cfg client.Config) string {
+	if len(cfg.Tunnels) == 0 {
 		return ""
 	}
 	addr := cfg.Tunnels[0].NtunlAddress

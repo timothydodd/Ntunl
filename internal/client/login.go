@@ -16,8 +16,9 @@ import (
 )
 
 // Login prompts for username/password, authenticates against the portal at
-// portalURL, and stores the returned token in the credential file.
-func Login(portalURL string, insecure bool) error {
+// portalURL, and stores the returned token keyed by each tunnel host so the
+// `run` command can find it (the portal and tunnel may be different hostnames).
+func Login(portalURL string, tunnelAddrs []string, insecure bool) error {
 	portalURL = strings.TrimRight(portalURL, "/")
 
 	username, err := promptLine("Username: ")
@@ -62,26 +63,38 @@ func Login(portalURL string, insecure bool) error {
 	if err != nil {
 		return err
 	}
-	creds.Set(portalURL, HostCred{Token: out.Token, Username: out.Username})
+	if len(tunnelAddrs) == 0 {
+		// Fall back to keying by the portal host if no tunnels were provided.
+		tunnelAddrs = []string{portalURL}
+	}
+	keys := make([]string, 0, len(tunnelAddrs))
+	for _, addr := range tunnelAddrs {
+		creds.Set(addr, HostCred{Token: out.Token, Username: out.Username})
+		keys = append(keys, HostKey(addr))
+	}
 	if err := creds.Save(); err != nil {
 		return err
 	}
 
-	fmt.Printf("Logged in as %s (host %s)\n", out.Username, HostKey(portalURL))
+	fmt.Printf("Logged in as %s (token stored for host %s)\n", out.Username, strings.Join(keys, ", "))
 	return nil
 }
 
-// Logout removes the stored credential for a host.
-func Logout(hostAddr string) error {
+// Logout removes the stored credentials for the given hosts.
+func Logout(hostAddrs []string) error {
 	creds, err := LoadCredentials()
 	if err != nil {
 		return err
 	}
-	creds.Delete(hostAddr)
+	keys := make([]string, 0, len(hostAddrs))
+	for _, addr := range hostAddrs {
+		creds.Delete(addr)
+		keys = append(keys, HostKey(addr))
+	}
 	if err := creds.Save(); err != nil {
 		return err
 	}
-	fmt.Printf("Logged out of host %s\n", HostKey(hostAddr))
+	fmt.Printf("Logged out of host %s\n", strings.Join(keys, ", "))
 	return nil
 }
 
